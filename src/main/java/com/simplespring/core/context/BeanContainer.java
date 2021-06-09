@@ -1,11 +1,9 @@
 package com.simplespring.core.context;
 
-import com.simplespring.core.annotation.Component;
-import com.simplespring.core.annotation.Controller;
-import com.simplespring.core.annotation.Repository;
-import com.simplespring.core.annotation.Service;
+import com.simplespring.core.annotation.*;
 import com.simplespring.core.utils.ClassUtil;
 import com.simplespring.core.utils.ValidationUtil;
+import com.simplespring.exception.DependencyInjectionException;
 import com.simplespring.exception.PackageScanningException;
 import com.simplespring.exception.BeanRegistrationException;
 import lombok.extern.slf4j.Slf4j;
@@ -13,11 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -61,6 +57,8 @@ public class BeanContainer {
             }
         }
 
+        doIoC();
+
         loaded =  true;
     }
 
@@ -70,5 +68,79 @@ public class BeanContainer {
         } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
             throw new BeanRegistrationException(e.getMessage());
         }
+    }
+
+    private void doIoC() {
+        if(this.size() == 0) {
+            log.warn("Empty container");
+            return;
+        }
+
+        Set<Class<?>> classSet = beanMap.keySet();
+        for(Class<?> clazz : classSet) {
+            Method[] declaredMethods = clazz.getDeclaredMethods();
+            for(Method method : declaredMethods) {
+                if(method.isAnnotationPresent(Autowired.class)) {
+                    if(method.getParameterCount() != 1) {
+                        throw new DependencyInjectionException("Wrong number of arguments");
+                    } else {
+                        Autowired autowiredAnnotation = method.getAnnotation(Autowired.class);
+                        String alias = autowiredAnnotation.value();
+                        Class<?> parameterType = method.getParameterTypes()[0];
+                        Object parameterInstance = getParameterInstance(parameterType, alias);
+
+                        Object bean = beanMap.get(clazz);
+                        method.setAccessible(true);
+
+                        try {
+                            method.invoke(bean,parameterInstance);
+                        } catch (IllegalAccessException | InvocationTargetException e) {
+                            throw new DependencyInjectionException(e.getMessage());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private Object getParameterInstance(Class<?> clazz, String alias) {
+        Object bean = beanMap.get(clazz);
+        if(bean != null) {
+            return bean;
+        } else {
+            Class<?> candidateClass = getCandidateClass(clazz, alias);
+            return beanMap.get(candidateClass);
+        }
+    }
+
+    private Class<?> getCandidateClass(Class<?> clazz, String alias) {
+        Set<Class<?>> superSet = getSuperClass(clazz);
+        if(!ValidationUtil.NotNullOrEmpty(superSet)) {
+            throw new DependencyInjectionException("No bean of type " + clazz.toString());
+        }
+
+        if(alias.isEmpty()) {
+            if(superSet.size() == 1) return superSet.iterator().next();
+            else {
+                throw new DependencyInjectionException("Too many options for bean of type " + clazz.toString());
+            }
+        } else {
+            for(Class<?> candi : superSet) {
+                if(candi.getSimpleName().equals(alias)) {
+                    return candi;
+                }
+            }
+            throw new DependencyInjectionException("No bean of type " + clazz.toString());
+        }
+    }
+
+    private Set<Class<?>> getSuperClass(Class<?> clazz) {
+        Set<Class<?>> superSet = new HashSet<>();
+        for(Class<?> item : beanMap.keySet()) {
+            if(clazz.isAssignableFrom(item) && !clazz.equals(item)) {
+                superSet.add(item);
+            }
+        }
+        return superSet.size() == 0 ? null : superSet;
     }
 }
