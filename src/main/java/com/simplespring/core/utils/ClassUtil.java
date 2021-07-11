@@ -1,5 +1,6 @@
 package com.simplespring.core.utils;
 
+import com.simplespring.aop.annotation.Aspect;
 import com.simplespring.core.annotation.Component;
 import com.simplespring.core.annotation.Controller;
 import com.simplespring.core.annotation.Repository;
@@ -11,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -26,7 +26,7 @@ import java.util.Set;
 public class ClassUtil {
     public static final String FILE_PROTOCOL = "file";
     private static final List<Class<? extends Annotation>> BEAN_ANNOTATIONS =
-            Arrays.asList(Component.class, Controller.class, Service.class, Repository.class);
+            Arrays.asList(Aspect.class,Component.class, Controller.class, Service.class, Repository.class);
 
     public static Set<Class<?>> extractPackageClass(String packageName) throws URISyntaxException, IOException {
         ClassLoader classLoader = getClassLoader();

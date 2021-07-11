@@ -38,6 +38,12 @@ public class BeanContainer {
         return beanMap.size();
     }
 
+    public synchronized void init(String packageName) {
+        loadBeans(packageName);
+
+        doIoC();
+    }
+
     public synchronized void loadBeans(String packageName){
         if(isLoaded()) {
             log.warn("BeanContainer has been loaded");
@@ -57,8 +63,6 @@ public class BeanContainer {
             }
         }
 
-        doIoC();
-
         loaded =  true;
     }
 
@@ -68,6 +72,10 @@ public class BeanContainer {
         } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
             throw new BeanRegistrationException(e.getMessage());
         }
+    }
+
+    public void addBean(Class<?> clazz, Object obj) {
+        beanMap.put(clazz,obj);
     }
 
     private void doIoC() {
@@ -114,7 +122,7 @@ public class BeanContainer {
     }
 
     private Class<?> getCandidateClass(Class<?> clazz, String alias) {
-        Set<Class<?>> superSet = getSuperClass(clazz);
+        Set<Class<?>> superSet = getClassBySuperClass(clazz);
         if(!ValidationUtil.NotNullOrEmpty(superSet)) {
             throw new DependencyInjectionException("No bean of type " + clazz.toString());
         }
@@ -134,7 +142,24 @@ public class BeanContainer {
         }
     }
 
-    private Set<Class<?>> getSuperClass(Class<?> clazz) {
+    public  Set<Class<?>> getClassesByAnnotation(Class<? extends Annotation> annotation) {
+        Set<Class<?>> classes = beanMap.keySet();
+        if(classes.isEmpty()) {
+            log.warn("Nothing in beanMap");
+            return null;
+        }
+
+        Set<Class<?>> resSet = new HashSet<>();
+        for(Class<?> clazz : classes) {
+            if(clazz.isAnnotationPresent(annotation)) {
+                resSet.add(clazz);
+            }
+        }
+
+        return resSet.isEmpty() ? null : resSet;
+    }
+
+    private Set<Class<?>> getClassBySuperClass(Class<?> clazz) {
         Set<Class<?>> superSet = new HashSet<>();
         for(Class<?> item : beanMap.keySet()) {
             if(clazz.isAssignableFrom(item) && !clazz.equals(item)) {
@@ -142,5 +167,9 @@ public class BeanContainer {
             }
         }
         return superSet.size() == 0 ? null : superSet;
+    }
+
+    public <T> T getBean(Class<T> clazz) {
+        return (T) beanMap.get(clazz);
     }
 }
