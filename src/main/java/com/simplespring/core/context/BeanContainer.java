@@ -1,5 +1,7 @@
 package com.simplespring.core.context;
 
+import com.simplespring.aop.AspectListExecutor;
+import com.simplespring.aop.AspectWeaver;
 import com.simplespring.core.annotation.*;
 import com.simplespring.core.utils.ClassUtil;
 import com.simplespring.core.utils.ValidationUtil;
@@ -40,7 +42,7 @@ public class BeanContainer {
 
     public synchronized void init(String packageName) {
         loadBeans(packageName);
-
+        new AspectWeaver().doAop();
         doIoC();
     }
 
@@ -159,6 +161,26 @@ public class BeanContainer {
         return resSet.isEmpty() ? null : resSet;
     }
 
+    public Set<Class<?>> getClassesByAnnotationOnMethod(Class<? extends Annotation> annotation) {
+        Set<Class<?>> classes = beanMap.keySet();
+        if(classes.isEmpty()) {
+            log.warn("Nothing in beanMap");
+            return null;
+        }
+
+        Set<Class<?>> resSet = new HashSet<>();
+        for(Class<?> clazz : classes) {
+            Method[] methods = clazz.getDeclaredMethods();
+            for(Method method : methods) {
+                if(method.isAnnotationPresent(annotation)) {
+                    resSet.add(clazz);
+                    break;
+                }
+            }
+        }
+        return resSet;
+    }
+
     private Set<Class<?>> getClassBySuperClass(Class<?> clazz) {
         Set<Class<?>> superSet = new HashSet<>();
         for(Class<?> item : beanMap.keySet()) {
@@ -171,5 +193,9 @@ public class BeanContainer {
 
     public <T> T getBean(Class<T> clazz) {
         return (T) beanMap.get(clazz);
+    }
+
+    public Set<Class<?>> getBeanClasses() {
+        return beanMap.keySet();
     }
 }

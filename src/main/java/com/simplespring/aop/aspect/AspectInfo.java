@@ -1,19 +1,27 @@
 package com.simplespring.aop.aspect;
 
+import java.lang.reflect.Method;
+
 public class AspectInfo {
     private int order;
-    private DefaultAspect aspect;
+    private Method method;
+    private Object aspectObj;
 
-    public AspectInfo(int order, DefaultAspect aspect) {
+    public AspectInfo(int order, Method method, Object aspectObj) {
         this.order = order;
-        this.aspect = aspect;
+        this.method = method;
+        this.aspectObj = aspectObj;
     }
 
     public int getOrder() {
         return order;
     }
 
-    public DefaultAspect getAspect() {
-        return aspect;
+    public Method getMethod() {
+        return method;
+    }
+
+    public Object getAspectObj() {
+        return aspectObj;
     }
 }
