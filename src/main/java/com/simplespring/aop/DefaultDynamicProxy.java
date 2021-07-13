@@ -1,60 +1,30 @@
 package com.simplespring.aop;
 
 import com.simplespring.aop.aspect.AspectInfo;
-import net.sf.cglib.proxy.MethodInterceptor;
-import net.sf.cglib.proxy.MethodProxy;
 
 import java.lang.reflect.Method;
 import java.util.*;
 
-public class AspectListExecutor implements MethodInterceptor {
-
-    private final Class<?> targetClass;
+public class DefaultDynamicProxy {
+    private final boolean isJDK;
     private final Map<Method, Set<AspectInfo>> beforeAspectInfoMap;
     private final Map<Method, Set<AspectInfo>> afterReturningAspectInfoMap;
     private final Map<Method, Set<AspectInfo>> afterThrowingAspectInfoMap;
 
-    public AspectListExecutor(Class<?> targetClass) {
-        this.targetClass = targetClass;
+    public DefaultDynamicProxy(boolean isJDK) {
+        this.isJDK = isJDK;
         this.beforeAspectInfoMap = new HashMap<>();
         this.afterReturningAspectInfoMap = new HashMap<>();
         this.afterThrowingAspectInfoMap = new HashMap<>();
     }
 
-    @Override
-    public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
-        Method originalMethod = targetClass.getDeclaredMethod(method.getName(), method.getParameterTypes());
-
-        if(beforeAspectInfoMap.containsKey(originalMethod)) {
-            invokeBeforeAdvice(method, args, beforeAspectInfoMap.get(originalMethod));
-        }
-
-        try {
-            Object returnValue = null;
-
-            returnValue = methodProxy.invokeSuper(proxy, args);
-
-            if(afterReturningAspectInfoMap.containsKey(originalMethod)) {
-                returnValue = invokeAfterReturningAdvice(method, args, returnValue, afterReturningAspectInfoMap.get(originalMethod));
-            }
-
-            return returnValue;
-        } catch (Exception e) {
-            if(afterThrowingAspectInfoMap.containsKey(originalMethod)) {
-                invokeAfterThrowingAdvice(method, args, e, afterThrowingAspectInfoMap.get(originalMethod));
-            }
-        }
-
-        return null;
-    }
-
-    private void invokeBeforeAdvice(Method method, Object [] args, Set<AspectInfo> aspectInfoSet) throws Throwable {
+    public void invokeBeforeAdvice(Method method, Object [] args, Set<AspectInfo> aspectInfoSet) throws Throwable {
         for(AspectInfo item : aspectInfoSet) {
             item.getMethod().invoke(item.getAspectObj());
         }
     }
 
-    private Object invokeAfterReturningAdvice(Method method, Object[] args, Object returnValue, Set<AspectInfo> aspectInfoSet) throws Throwable {
+    public Object invokeAfterReturningAdvice(Method method, Object[] args, Object returnValue, Set<AspectInfo> aspectInfoSet) throws Throwable {
         Object result = returnValue;
         for(AspectInfo item : aspectInfoSet) {
             result = item.getMethod().invoke(item.getAspectObj(), result);
@@ -63,9 +33,9 @@ public class AspectListExecutor implements MethodInterceptor {
         return result;
     }
 
-    private void invokeAfterThrowingAdvice(Method method, Object[] args, Throwable e, Set<AspectInfo> aspectInfoSet) throws Throwable {
+    public void invokeAfterThrowingAdvice(Method method, Object[] args, Throwable e, Set<AspectInfo> aspectInfoSet) throws Throwable {
         for(AspectInfo item : aspectInfoSet) {
-             item.getMethod().invoke(item.getAspectObj(),e);
+            item.getMethod().invoke(item.getAspectObj(),e);
         }
     }
 
@@ -96,4 +66,30 @@ public class AspectListExecutor implements MethodInterceptor {
         aspectInfoList.addAll(value);
         this.afterThrowingAspectInfoMap.put(key, aspectInfoList);
     }
+
+    public boolean beforeMapContains(Method method) {
+        return beforeAspectInfoMap.containsKey(method);
+    }
+
+    public Set<AspectInfo> beforeMapGet(Method method) {
+        return beforeAspectInfoMap.get(method);
+    }
+
+    public boolean afterReturningMapContains(Method method) {
+        return afterReturningAspectInfoMap.containsKey(method);
+    }
+
+    public Set<AspectInfo> afterReturningMapGet(Method method) {
+        return afterReturningAspectInfoMap.get(method);
+    }
+
+    public boolean afterThrowingMapContains(Method method) {
+        return afterThrowingAspectInfoMap.containsKey(method);
+    }
+
+    public Set<AspectInfo> afterThrowingMapGet(Method method) {
+        return afterThrowingAspectInfoMap.get(method);
+    }
+
+    public boolean isJDK() {return this.isJDK;}
 }

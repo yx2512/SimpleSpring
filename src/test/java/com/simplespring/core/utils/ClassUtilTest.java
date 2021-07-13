@@ -2,6 +2,7 @@ package com.simplespring.core.utils;
 
 import com.example.bean.BeanA;
 import com.example.bean.BeanB;
+import com.example.bean.BeanInterface;
 import com.simplespring.core.context.BeanContainer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -18,15 +19,16 @@ class ClassUtilTest {
     void extractPackageClass() {
         BeanContainer beanContainer = BeanContainer.getInstance();
         beanContainer.init("com.example");
-        BeanA beanA = beanContainer.getBean(BeanA.class);
+        BeanInterface beanA = (BeanInterface) beanContainer.getBean(BeanA.class);
 
         beanA.receiveRequest();
         System.out.println(" ");
-        beanA.sendResponse();
-        System.out.println(" ");
 
-        BeanB beanB = beanContainer.getBean(BeanB.class);
+        BeanB beanB = (BeanB) beanContainer.getBean(BeanB.class);
         beanB.receiveRequest();
+        System.out.println(" ");
         beanB.getRandom();
+        System.out.println(" ");
+        beanB.sendResponse();
     }
 }

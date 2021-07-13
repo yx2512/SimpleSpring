@@ -1,6 +1,5 @@
 package com.simplespring.core.context;
 
-import com.simplespring.aop.AspectListExecutor;
 import com.simplespring.aop.AspectWeaver;
 import com.simplespring.core.annotation.*;
 import com.simplespring.core.utils.ClassUtil;
@@ -52,7 +51,7 @@ public class BeanContainer {
             return;
         }
 
-        Set<Class<?>> classSet = null;
+        Set<Class<?>> classSet;
         try {
             classSet = ClassUtil.extractPackageClass(packageName);
         } catch (URISyntaxException | IOException e) {
@@ -191,8 +190,8 @@ public class BeanContainer {
         return superSet.size() == 0 ? null : superSet;
     }
 
-    public <T> T getBean(Class<T> clazz) {
-        return (T) beanMap.get(clazz);
+    public Object getBean(Class<?> clazz) {
+        return beanMap.get(clazz);
     }
 
     public Set<Class<?>> getBeanClasses() {

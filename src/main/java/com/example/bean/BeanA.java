@@ -5,7 +5,7 @@ import com.example.annotation.Time;
 import com.simplespring.core.annotation.Component;
 
 @Component
-public class BeanA {
+public class BeanA implements BeanInterface{
 
     @Time
     @Greeting
