@@ -5,16 +5,16 @@ import com.example.annotation.Time;
 import com.simplespring.core.annotation.Component;
 
 @Component
-public class BeanA implements BeanInterface{
+public class BeanA implements BeanInterface, BeanInterface2{
 
-    @Time
-    @Greeting
+//    @Time
+//    @Greeting
     public String receiveRequest() {
         System.out.println("request received!");
         return "request received";
     }
 
-    @Time
+//    @Time
     public void sendResponse() {
         System.out.println("response sent!");
         throw new RuntimeException();

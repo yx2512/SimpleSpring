@@ -7,12 +7,14 @@ import java.util.*;
 
 public class DefaultDynamicProxy {
     private final boolean isJDK;
+    private final Class<?> targetClass;
     private final Map<Method, Set<AspectInfo>> beforeAspectInfoMap;
     private final Map<Method, Set<AspectInfo>> afterReturningAspectInfoMap;
     private final Map<Method, Set<AspectInfo>> afterThrowingAspectInfoMap;
 
-    public DefaultDynamicProxy(boolean isJDK) {
+    public DefaultDynamicProxy(Class<?> clazz, boolean isJDK) {
         this.isJDK = isJDK;
+        this.targetClass = clazz;
         this.beforeAspectInfoMap = new HashMap<>();
         this.afterReturningAspectInfoMap = new HashMap<>();
         this.afterThrowingAspectInfoMap = new HashMap<>();
@@ -92,4 +94,8 @@ public class DefaultDynamicProxy {
     }
 
     public boolean isJDK() {return this.isJDK;}
+
+    public Class<?> getTargetClass() {
+        return targetClass;
+    }
 }

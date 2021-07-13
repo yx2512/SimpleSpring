@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class BeanContainer {
     private boolean loaded = false;
-    private final Map<Class<?>, Object> beanMap = new ConcurrentHashMap<>();
+    private final Map<String, Object> beanMap = new ConcurrentHashMap<>();
     private static final List<Class<? extends Annotation>> BEAN_ANNOTATIONS =
             Arrays.asList(Component.class, Controller.class, Service.class, Repository.class);
     public static BeanContainer getInstance() {return ContainerHolder.HOLDER.instance;}
@@ -69,14 +69,14 @@ public class BeanContainer {
 
     public void addBean(Class<?> clazz) {
         try{
-            beanMap.put(clazz,ClassUtil.newInstance(clazz,true));
+            beanMap.put(clazz.getSimpleName(),ClassUtil.newInstance(clazz,true));
         } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
             throw new BeanRegistrationException(e.getMessage());
         }
     }
 
-    public void addBean(Class<?> clazz, Object obj) {
-        beanMap.put(clazz,obj);
+    public void addBean(String key, Object value) {
+        beanMap.put(key,value);
     }
 
     private void doIoC() {
@@ -85,8 +85,9 @@ public class BeanContainer {
             return;
         }
 
-        Set<Class<?>> classSet = beanMap.keySet();
-        for(Class<?> clazz : classSet) {
+        Set<String> nameSet = beanMap.keySet();
+        for(String beanName : nameSet) {
+            Class<?> clazz = beanMap.get(beanName).getClass();
             Method[] declaredMethods = clazz.getDeclaredMethods();
             for(Method method : declaredMethods) {
                 if(method.isAnnotationPresent(Autowired.class)) {
@@ -96,11 +97,14 @@ public class BeanContainer {
                         Autowired autowiredAnnotation = method.getAnnotation(Autowired.class);
                         String alias = autowiredAnnotation.value();
                         Class<?> parameterType = method.getParameterTypes()[0];
-                        Object parameterInstance = getParameterInstance(parameterType, alias);
+                        Object parameterInstance = getParameterInstance(parameterType.getSimpleName(), parameterType, alias);
 
-                        Object bean = beanMap.get(clazz);
+                        Object bean = beanMap.get(beanName);
                         method.setAccessible(true);
 
+                        if(parameterInstance.getClass().getSimpleName().equals(beanName)) {
+                            throw new DependencyInjectionException("Circular dependency found in bean with class: " + clazz);
+                        }
                         try {
                             method.invoke(bean,parameterInstance);
                         } catch (IllegalAccessException | InvocationTargetException e) {
@@ -112,18 +116,18 @@ public class BeanContainer {
         }
     }
 
-    private Object getParameterInstance(Class<?> clazz, String alias) {
-        Object bean = beanMap.get(clazz);
+    private Object getParameterInstance(String name, Class<?> clazz, String alias) {
+        Object bean = beanMap.get(name);
         if(bean != null) {
             return bean;
         } else {
-            Class<?> candidateClass = getCandidateClass(clazz, alias);
-            return beanMap.get(candidateClass);
+            String candidateBean = getCandidateClass(clazz, alias);
+            return beanMap.get(candidateBean);
         }
     }
 
-    private Class<?> getCandidateClass(Class<?> clazz, String alias) {
-        Set<Class<?>> superSet = getClassBySuperClass(clazz);
+    private String getCandidateClass(Class<?> clazz, String alias) {
+        Set<String> superSet = getClassBySuperClass(clazz);
         if(!ValidationUtil.NotNullOrEmpty(superSet)) {
             throw new DependencyInjectionException("No bean of type " + clazz.toString());
         }
@@ -134,67 +138,48 @@ public class BeanContainer {
                 throw new DependencyInjectionException("Too many options for bean of type " + clazz.toString());
             }
         } else {
-            for(Class<?> candi : superSet) {
-                if(candi.getSimpleName().equals(alias)) {
+            for(String candi : superSet) {
+                if(candi.equals(alias)) {
                     return candi;
                 }
             }
-            throw new DependencyInjectionException("No bean of type " + clazz.toString());
+            throw new DependencyInjectionException("Cannot find bean with alias " + alias);
         }
     }
 
-    public  Set<Class<?>> getClassesByAnnotation(Class<? extends Annotation> annotation) {
-        Set<Class<?>> classes = beanMap.keySet();
-        if(classes.isEmpty()) {
+    public  Set<Map.Entry<String, Object>> getBeansByAnnotation(Class<? extends Annotation> annotation) {
+        Set<Map.Entry<String, Object>> entrySet = beanMap.entrySet();
+        if(entrySet.isEmpty()) {
             log.warn("Nothing in beanMap");
             return null;
         }
 
-        Set<Class<?>> resSet = new HashSet<>();
-        for(Class<?> clazz : classes) {
-            if(clazz.isAnnotationPresent(annotation)) {
-                resSet.add(clazz);
+        Set<Map.Entry<String, Object>> resSet = new HashSet<>();
+        for(Map.Entry<String, Object> entry : entrySet) {
+            if(entry.getValue().getClass().isAnnotationPresent(annotation)) {
+                resSet.add(entry);
             }
         }
 
         return resSet.isEmpty() ? null : resSet;
     }
 
-    public Set<Class<?>> getClassesByAnnotationOnMethod(Class<? extends Annotation> annotation) {
-        Set<Class<?>> classes = beanMap.keySet();
-        if(classes.isEmpty()) {
-            log.warn("Nothing in beanMap");
-            return null;
-        }
-
-        Set<Class<?>> resSet = new HashSet<>();
-        for(Class<?> clazz : classes) {
-            Method[] methods = clazz.getDeclaredMethods();
-            for(Method method : methods) {
-                if(method.isAnnotationPresent(annotation)) {
-                    resSet.add(clazz);
-                    break;
-                }
-            }
-        }
-        return resSet;
-    }
-
-    private Set<Class<?>> getClassBySuperClass(Class<?> clazz) {
-        Set<Class<?>> superSet = new HashSet<>();
-        for(Class<?> item : beanMap.keySet()) {
-            if(clazz.isAssignableFrom(item) && !clazz.equals(item)) {
-                superSet.add(item);
+    private Set<String> getClassBySuperClass(Class<?> clazz) {
+        Set<String> superSet = new HashSet<>();
+        for(Map.Entry<String, Object> entry : beanMap.entrySet()) {
+            Class<?> beanClazz = entry.getValue().getClass();
+            if(clazz.isAssignableFrom(beanClazz) && !clazz.equals(beanClazz)) {
+                superSet.add(entry.getKey());
             }
         }
         return superSet.size() == 0 ? null : superSet;
     }
 
-    public Object getBean(Class<?> clazz) {
-        return beanMap.get(clazz);
+    public Object getBean(String key) {
+        return beanMap.get(key);
     }
 
-    public Set<Class<?>> getBeanClasses() {
-        return beanMap.keySet();
+    public Set<Map.Entry<String, Object>> getBeans() {
+        return beanMap.entrySet();
     }
 }

@@ -7,16 +7,13 @@ import java.lang.reflect.Method;
 
 public class CGlibDynamicProxy extends DefaultDynamicProxy implements MethodInterceptor {
 
-    private final Class<?> targetClass;
-
     public CGlibDynamicProxy(Class<?> targetClass) {
-        super(false);
-        this.targetClass = targetClass;
+        super(targetClass,false);
     }
 
     @Override
     public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
-        Method originalMethod = targetClass.getMethod(method.getName(), method.getParameterTypes());
+        Method originalMethod = getTargetClass().getMethod(method.getName(), method.getParameterTypes());
 
         if(beforeMapContains(originalMethod)) {
             invokeBeforeAdvice(method, args, beforeMapGet(originalMethod));

@@ -12,7 +12,7 @@ import java.util.*;
 @Slf4j
 public class AspectWeaver {
     private final BeanContainer beanContainer;
-    private final Map<Class<?>, DefaultDynamicProxy> cache;
+    private final Map<String, DefaultDynamicProxy> cache;
     private final Map<Class<? extends Annotation>, List<AspectInfo>> beforeMap;
     private final Map<Class<? extends Annotation>, List<AspectInfo>> afterReturningMap;
     private final Map<Class<? extends Annotation>, List<AspectInfo>> afterThrowingMap;
@@ -27,14 +27,15 @@ public class AspectWeaver {
     }
 
     public void doAop() {
-        Set<Class<?>> aspectSet = beanContainer.getClassesByAnnotation(Aspect.class);
+        Set<Map.Entry<String, Object>> aspectSet = beanContainer.getBeansByAnnotation(Aspect.class);
 
 
         if(aspectSet == null || aspectSet.isEmpty()) {
             return;
         }
 
-        for(Class<?> clazz : aspectSet) {
+        for(Map.Entry<String, Object> entry : aspectSet) {
+            Class<?> clazz = entry.getValue().getClass();
             if(verifyAspect(clazz)) {
                 categorizeAspect(clazz);
             } else {
@@ -50,28 +51,29 @@ public class AspectWeaver {
         totalSet.addAll(afterReturningMap.keySet());
         totalSet.addAll(afterThrowingMap.keySet());
 
-        Set<Class<?>> beanClasses = beanContainer.getBeanClasses();
+        Set<Map.Entry<String, Object>> beanClasses = beanContainer.getBeans();
 
         for(Class<? extends Annotation> targetAnnotation : totalSet) {
             weaveByCategory(targetAnnotation, beanClasses);
         }
 
-        for(Class <?> clazz : cache.keySet()) {
-            Object proxy = ProxyCreator.createProxy(clazz, cache.get(clazz));
-            beanContainer.addBean(clazz, proxy);
+        for(String name : cache.keySet()) {
+            Object proxy = ProxyCreator.createProxy(cache.get(name).getTargetClass(), cache.get(name));
+            beanContainer.addBean(name, proxy);
         }
     }
 
-    private void weaveByCategory(Class<? extends Annotation> annotation, Set<Class<?>> classes) {
+    private void weaveByCategory(Class<? extends Annotation> annotation, Set<Map.Entry<String, Object>> entries) {
 
 
-        if(classes == null || classes.isEmpty()) {
+        if(entries == null || entries.isEmpty()) {
             log.warn("Nothing in beanMap");
             return;
         }
 
-        for(Class<?> clazz : classes) {
+        for(Map.Entry<String, Object> entry : entries) {
             boolean hasInterface = false;
+            Class<?> clazz = entry.getValue().getClass();
             if(clazz.getAnnotation(Aspect.class) != null) {
                 continue;
             }
@@ -84,41 +86,41 @@ public class AspectWeaver {
             for(Method method : methods) {
                 if(method.isAnnotationPresent(annotation)) {
                     if(hasInterface) {
-                        jdkProxyHandler(annotation, method, clazz, beanContainer.getBean(clazz));
+                        jdkProxyHandler(annotation, method, entry.getKey(), entry.getValue());
                     } else{
-                        cglibProxyHandler(annotation, method, clazz);
+                        cglibProxyHandler(annotation, method, clazz, entry.getKey());
                     }
                 }
             }
         }
     }
 
-    private void jdkProxyHandler(Class<? extends Annotation> annotation, Method method, Class<?> clazz, Object object) {
+    private void jdkProxyHandler(Class<? extends Annotation> annotation, Method method, String name, Object object) {
         JDKDynamicProxy jdkDynamicProxy;
-        if(!cache.containsKey(clazz)) {
+        if(!cache.containsKey(name)) {
             jdkDynamicProxy = new JDKDynamicProxy(object);
         } else {
-            jdkDynamicProxy = (JDKDynamicProxy) cache.get(clazz);
+            jdkDynamicProxy = (JDKDynamicProxy) cache.get(name);
         }
 
         jdkDynamicProxy.addToBeforeMap(method, beforeMap.get(annotation));
         jdkDynamicProxy.addToAfterReturningMap(method, afterReturningMap.get(annotation));
         jdkDynamicProxy.addToAfterThrowingMap(method, afterThrowingMap.get(annotation));
-        cache.put(clazz, jdkDynamicProxy);
+        cache.put(name, jdkDynamicProxy);
     }
 
-    private void cglibProxyHandler(Class<? extends Annotation> annotation, Method method, Class<?> clazz) {
+    private void cglibProxyHandler(Class<? extends Annotation> annotation, Method method, Class<?> clazz, String name) {
         CGlibDynamicProxy cglibDynamicProxy;
-        if(!cache.containsKey(clazz)) {
+        if(!cache.containsKey(name)) {
             cglibDynamicProxy = new CGlibDynamicProxy(clazz);
         } else {
-            cglibDynamicProxy = (CGlibDynamicProxy) cache.get(clazz);
+            cglibDynamicProxy = (CGlibDynamicProxy) cache.get(name);
         }
 
         cglibDynamicProxy.addToBeforeMap(method, beforeMap.get(annotation));
         cglibDynamicProxy.addToAfterReturningMap(method, afterReturningMap.get(annotation));
         cglibDynamicProxy.addToAfterThrowingMap(method, afterThrowingMap.get(annotation));
-        cache.put(clazz,cglibDynamicProxy);
+        cache.put(name,cglibDynamicProxy);
     }
 
     private void categorizeAspect(Class<?> clazz) {
@@ -143,7 +145,7 @@ public class AspectWeaver {
                 throw new RuntimeException("No point cut found for aspect " + clazz.getSimpleName());
             }
             List<AspectInfo> aspectInfoList = auxMap.getOrDefault(targetAnnotation, new ArrayList<>());
-            aspectInfoList.add(new AspectInfo(orderTag.value(),method, beanContainer.getBean(clazz)));
+            aspectInfoList.add(new AspectInfo(orderTag.value(),method, beanContainer.getBean(clazz.getSimpleName())));
             auxMap.put(targetAnnotation,aspectInfoList);
         }
     }

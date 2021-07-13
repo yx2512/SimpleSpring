@@ -6,18 +6,16 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 
 public class JDKDynamicProxy extends DefaultDynamicProxy implements InvocationHandler {
-    private Object targetObject;
-    private Class<?> targetClass;
+    private final Object targetObject;
 
     public JDKDynamicProxy(Object object) {
-        super(true);
+        super(object.getClass(),true);
         this.targetObject = object;
-        this.targetClass = object.getClass();
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        Method originalMethod = targetClass.getMethod(method.getName(), method.getParameterTypes());
+        Method originalMethod = getTargetClass().getMethod(method.getName(), method.getParameterTypes());
 
         if(beforeMapContains(originalMethod)) {
             invokeBeforeAdvice(method, args, beforeMapGet(originalMethod));
