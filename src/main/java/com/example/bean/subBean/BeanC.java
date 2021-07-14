@@ -16,7 +16,7 @@ public class BeanC implements BeanInterface{
         this.beanB = bean;
     }
 
-    @Autowired("BeanC")
+    @Autowired("BeanA")
     public void setBeanInterface(BeanInterface beanInterface) {
         this.beanInterface = beanInterface;
     }
