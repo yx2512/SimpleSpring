@@ -17,13 +17,13 @@ import java.util.List;
 
 @WebServlet("/*")
 public class DispatcherServlet extends HttpServlet {
-    List<RequestProcessor> PROCESSOR = new ArrayList<>();
+    private static final List<RequestProcessor> PROCESSOR = new ArrayList<>();
 
     @Override
     public void init() throws ServletException {
         // container initialization
         BeanContainer beanContainer = BeanContainer.getInstance();
-        beanContainer.init("com.example");
+        beanContainer.init("com.example.mvc");
 
         PROCESSOR.add(new PreRequestProcessor());
         PROCESSOR.add(new StaticResourceRequestProcessor(getServletContext()));

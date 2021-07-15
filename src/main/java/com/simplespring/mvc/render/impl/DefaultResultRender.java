@@ -8,8 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 public class DefaultResultRender implements ResultRender {
     @Override
     public void render(RequestProcessorChain requestProcessorChain) throws Exception {
-        int responseCode = requestProcessorChain.getResponseCode();
         HttpServletResponse response = requestProcessorChain.getResponse();
-        response.setStatus(responseCode);
+        response.setStatus(HttpServletResponse.SC_OK);
     }
 }

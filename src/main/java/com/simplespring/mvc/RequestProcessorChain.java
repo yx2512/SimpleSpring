@@ -12,13 +12,12 @@ import java.util.Iterator;
 
 @Slf4j
 public class RequestProcessorChain {
-    private Iterator<RequestProcessor> requestProcessorIterator;
-    private HttpServletRequest request;
-    private HttpServletResponse response;
+    private final Iterator<RequestProcessor> requestProcessorIterator;
+    private final HttpServletRequest request;
+    private final HttpServletResponse response;
 
-    private String requestMethod;
+    private final String requestMethod;
     private String requestPath;
-    private int responseCode;
     private ResultRender resultRender;
 
     public RequestProcessorChain(Iterator<RequestProcessor> requestProcessorIterator, HttpServletRequest request, HttpServletResponse response) {
@@ -27,7 +26,6 @@ public class RequestProcessorChain {
         this.response = response;
         this.requestMethod = this.request.getMethod();
         this.requestPath = this.request.getPathInfo();
-        this.responseCode = HttpServletResponse.SC_OK;
     }
 
     public void doRequestProcessorChain() {
@@ -43,36 +41,16 @@ public class RequestProcessorChain {
         }
     }
 
-    public Iterator<RequestProcessor> getRequestProcessorIterator() {
-        return requestProcessorIterator;
-    }
-
-    public void setRequestProcessorIterator(Iterator<RequestProcessor> requestProcessorIterator) {
-        this.requestProcessorIterator = requestProcessorIterator;
-    }
-
     public HttpServletRequest getRequest() {
         return request;
-    }
-
-    public void setRequest(HttpServletRequest request) {
-        this.request = request;
     }
 
     public HttpServletResponse getResponse() {
         return response;
     }
 
-    public void setResponse(HttpServletResponse response) {
-        this.response = response;
-    }
-
     public String getRequestMethod() {
         return requestMethod;
-    }
-
-    public void setRequestMethod(String requestMethod) {
-        this.requestMethod = requestMethod;
     }
 
     public String getRequestPath() {
@@ -81,18 +59,6 @@ public class RequestProcessorChain {
 
     public void setRequestPath(String requestPath) {
         this.requestPath = requestPath;
-    }
-
-    public int getResponseCode() {
-        return responseCode;
-    }
-
-    public void setResponseCode(int responseCode) {
-        this.responseCode = responseCode;
-    }
-
-    public ResultRender getResultRender() {
-        return resultRender;
     }
 
     public void setResultRender(ResultRender resultRender) {

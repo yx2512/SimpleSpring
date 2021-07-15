@@ -1,27 +1,30 @@
 package com.simplespring.mvc.processor.impl;
 
+import com.google.gson.Gson;
 import com.simplespring.core.context.BeanContainer;
 import com.simplespring.core.utils.ConversionUtil;
 import com.simplespring.mvc.RequestProcessorChain;
-import com.simplespring.mvc.annotation.RequestMapping;
-import com.simplespring.mvc.annotation.RequestParam;
-import com.simplespring.mvc.annotation.ResponseBody;
+import com.simplespring.mvc.annotation.*;
 import com.simplespring.mvc.processor.RequestProcessor;
 import com.simplespring.mvc.render.ResultRender;
 import com.simplespring.mvc.render.impl.JSONResultRender;
 import com.simplespring.mvc.render.impl.ResourceNotFoundResultRender;
 import com.simplespring.mvc.render.impl.ViewResultRender;
 import com.simplespring.mvc.type.ControllerMethod;
+import com.simplespring.mvc.type.ParameterWrapper;
 import com.simplespring.mvc.type.RequestPathInfo;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class ControllerRequestProcessor implements RequestProcessor {
@@ -58,27 +61,31 @@ public class ControllerRequestProcessor implements RequestProcessor {
 
                     String finalPath = basePath + secondaryPath;
 
-                    Map<String, Parameter> methodParam = new HashMap<>();
+                    Map<String, ParameterWrapper> methodParam = new HashMap<>();
 
                     Parameter[] parameters = method.getParameters();
 
                     for (Parameter parameter : parameters) {
-                        RequestParam paramAnnotation = parameter.getAnnotation(RequestParam.class);
-                        if(paramAnnotation == null) {
+                        ParameterWrapper parameterWrapper;
+                        if(parameter.isAnnotationPresent(RequestParam.class)) {
+                            RequestParam requestParam = parameter.getAnnotation(RequestParam.class);
+                            parameterWrapper = new ParameterWrapper(parameter,RequestParam.class,requestParam.value(),requestParam.defaultValue(),requestParam.required());
+                        } else if (parameter.isAnnotationPresent(RequestBody.class)) {
+                            RequestBody requestBody = parameter.getAnnotation(RequestBody.class);
+                            parameterWrapper = new ParameterWrapper(parameter, RequestBody.class, null, null, requestBody.required());
+                        } else if (parameter.isAnnotationPresent(PathVariable.class)) {
+                            PathVariable pathVariable = parameter.getAnnotation(PathVariable.class);
+                            parameterWrapper = new ParameterWrapper(parameter, PathVariable.class, pathVariable.value(), pathVariable.defaultValue(), pathVariable.required());
+                        } else {
                             if(parameter.getType().equals(HttpServletRequest.class)) {
-                                methodParam.put("HttpServletRequest", parameter);
+                                parameterWrapper = new ParameterWrapper(parameter);
                             } else if (parameter.getType().equals(HttpServletResponse.class)) {
-                                methodParam.put("HttpServletResponse", parameter);
+                                parameterWrapper = new ParameterWrapper(parameter);
                             } else {
                                 throw new RuntimeException("Floating parameter: " + parameter.getName());
                             }
-                        } else {
-                            String paramName = paramAnnotation.value();
-                            if("".equals(paramName)) {
-                                paramName = parameter.getName();
-                            }
-                            methodParam.put(paramName,parameter);
                         }
+                        methodParam.put(parameter.getName(),parameterWrapper);
                     }
                     String httpMethod = String.valueOf(methodRequest.method());
 
@@ -88,7 +95,7 @@ public class ControllerRequestProcessor implements RequestProcessor {
                                 requestPathInfo.getHttpPath(), clazz.getName(), method.getName());
                     }
 
-                    ControllerMethod controllerMethod = new ControllerMethod(clazz, method, methodParam);
+                    ControllerMethod controllerMethod = new ControllerMethod(finalPath, clazz, method, methodParam);
                     this.pathInfoControllerMethodMap.put(requestPathInfo, controllerMethod);
                 }
             }
@@ -106,7 +113,7 @@ public class ControllerRequestProcessor implements RequestProcessor {
             return false;
         }
 
-        Object result = invokeControllerMethod(controllerMethod, requestProcessorChain.getRequest());
+        Object result = invokeControllerMethod(controllerMethod, requestProcessorChain.getRequest(), requestProcessorChain.getResponse());
 
         setResultRender(result, controllerMethod, requestProcessorChain);
         return true;
@@ -126,9 +133,28 @@ public class ControllerRequestProcessor implements RequestProcessor {
         requestProcessorChain.setResultRender(resultRender);
     }
 
-    private Object invokeControllerMethod(ControllerMethod controllerMethod, HttpServletRequest request) {
+    private Map<String, String> buildUrlSegmentMap(String urlAboveMethod,String requestPath) {
+        if(!urlAboveMethod.contains("{")) {
+            return null;
+        }
+        Map<String, String> segmentMap = new HashMap<>();
+        String[] aboveMethodUrlSegments = urlAboveMethod.split("/");
+        String[] requestUrlSegments = requestPath.split("/");
+
+        for(int i=0; i<Math.min(aboveMethodUrlSegments.length, requestUrlSegments.length); i++) {
+            if(aboveMethodUrlSegments[i].startsWith("{") && aboveMethodUrlSegments[i].endsWith("}")) {
+                segmentMap.put(aboveMethodUrlSegments[i].substring(1,aboveMethodUrlSegments[i].length()-1), requestUrlSegments[i]);
+            }
+        }
+
+        return segmentMap;
+    }
+
+    private Object invokeControllerMethod(ControllerMethod controllerMethod, HttpServletRequest request, HttpServletResponse response) {
         Map<String, String> requestParamMap = new HashMap<>();
         Map parameterMap = request.getParameterMap();
+
+        Map<String, String> urlSegmentMap = buildUrlSegmentMap(controllerMethod.getPath(), request.getPathInfo());
 
         for(Map.Entry<String, String []> entry : (Set<Map.Entry<String, String []>>) parameterMap.entrySet()) {
             if(entry.getValue() != null) {
@@ -137,27 +163,36 @@ public class ControllerRequestProcessor implements RequestProcessor {
         }
 
         List<Object> methodParams = new ArrayList<>();
-        Map<String, Parameter> methodParamMap = controllerMethod.getMethodParameters();
+        Map<String, ParameterWrapper> methodParamMap = controllerMethod.getMethodParameters();
         for(String name : methodParamMap.keySet()) {
-            Parameter parameter = methodParamMap.get(name);
-            RequestParam argAnnotation = parameter.getAnnotation(RequestParam.class);
-
-            if(argAnnotation == null) {
-                continue;
-            }
-
+            ParameterWrapper parameterWrapper = methodParamMap.get(name);
+            Class<? extends Annotation> argAnnotationClass = parameterWrapper.getAnnotationClass();
             Object afterConversion;
-            String value = requestParamMap.get(name);
-            if(value == null && argAnnotation.required()) {
-                throw new RuntimeException("Missing request argument: " + name);
-            } else if (value == null) {
-                if(argAnnotation.defaultValue().equals("\n\t\t\n\t\t\n\ue000\ue001\ue002\n\t\t\t\t\n")) {
-                    afterConversion = ConversionUtil.primitiveNull(parameter.getType());
-                } else {
-                    afterConversion = ConversionUtil.convert(parameter.getType(),argAnnotation.defaultValue());
+            if(argAnnotationClass == null) {
+                if(parameterWrapper.getParameter().getType().equals(HttpServletRequest.class)) {
+                    methodParams.add(request);
+                } else if (parameterWrapper.getParameter().getType().equals(HttpServletResponse.class)) {
+                    methodParams.add(response);
+                }
+                continue;
+            } else if(argAnnotationClass.equals(RequestParam.class)){
+                String value = requestParamMap.get(name);
+                afterConversion = convertPrimitiveRequestParameter(value, parameterWrapper);
+            } else if(argAnnotationClass.equals(PathVariable.class)) {
+                if(urlSegmentMap == null || urlSegmentMap.size() == 0) {
+                    throw new RuntimeException("Did not find corresponding url pattern in method: " + controllerMethod.getMethodParameters());
+                }
+                afterConversion = convertPrimitiveRequestParameter(name, urlSegmentMap, parameterWrapper);
+            } else if(argAnnotationClass.equals(RequestBody.class)) {
+                try {
+                    String jsonStr = request.getReader().lines().collect(Collectors.joining());
+                    afterConversion = convertJSONRequestParameter(jsonStr,parameterWrapper);
+                } catch (IOException e) {
+                    throw new RuntimeException("Cannot read from request");
                 }
             } else {
-                afterConversion = ConversionUtil.convert(parameter.getType(), value);
+                log.error("Unrecognized annotation {} on parameter {} in method {}", argAnnotationClass, parameterWrapper.getParameter().getName(), controllerMethod.getMethod());
+                throw new RuntimeException("Request parameter binding failed");
             }
 
             methodParams.add(afterConversion);
@@ -180,5 +215,31 @@ public class ControllerRequestProcessor implements RequestProcessor {
             throw new RuntimeException(e);
         }
         return result;
+    }
+
+    private Object convertPrimitiveRequestParameter(String value, ParameterWrapper parameterWrapper) {
+        Object afterConversion;
+        if(value == null && parameterWrapper.getRequired()) {
+            throw new RuntimeException("Missing request argument: " + parameterWrapper.getName());
+        } else if (value == null) {
+            if(parameterWrapper.getDefaultValue() == null) {
+                afterConversion = ConversionUtil.primitiveNull(parameterWrapper.getParameter().getType());
+            } else {
+                afterConversion = ConversionUtil.convert(parameterWrapper.getParameter().getType(), parameterWrapper.getDefaultValue());
+            }
+        } else {
+            afterConversion = ConversionUtil.convert(parameterWrapper.getParameter().getType(), value);
+        }
+
+        return afterConversion;
+    }
+
+    private Object convertPrimitiveRequestParameter(String name, Map<String, String> segmentMap, ParameterWrapper parameterWrapper) {
+        return convertPrimitiveRequestParameter(segmentMap.getOrDefault(name, null), parameterWrapper);
+    }
+
+    private Object convertJSONRequestParameter(String value, ParameterWrapper parameterWrapper) {
+        Gson gson = new Gson();
+        return gson.fromJson(value, parameterWrapper.getParameter().getType());
     }
 }
