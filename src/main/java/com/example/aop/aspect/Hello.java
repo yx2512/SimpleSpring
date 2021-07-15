@@ -1,6 +1,6 @@
-package com.example.aspect;
+package com.example.aop.aspect;
 
-import com.example.annotation.Greeting;
+import com.example.aop.annotation.Greeting;
 import com.simplespring.aop.annotation.AfterReturning;
 import com.simplespring.aop.annotation.Aspect;
 import com.simplespring.aop.annotation.Before;

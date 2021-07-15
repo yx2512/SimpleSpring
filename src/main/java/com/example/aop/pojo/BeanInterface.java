@@ -1,4 +1,4 @@
-package com.example.bean;
+package com.example.aop.pojo;
 
 public interface BeanInterface {
     String receiveRequest();

@@ -6,6 +6,7 @@ import com.example.mvc.service.GenericService;
 import com.simplespring.core.annotation.Autowired;
 import com.simplespring.core.annotation.Controller;
 import com.simplespring.mvc.annotation.*;
+import com.simplespring.mvc.type.ModelAndView;
 import com.simplespring.mvc.type.RequestMethod;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,19 +25,39 @@ public class RequestParamBindingTestController {
 
     @RequestMapping(value = "/login",method = RequestMethod.POST)
     public void userLoginWithRequestParam(@RequestParam("email") String email, @RequestParam("password") String password) {
-        log.info("Greetings ! user with email: {} and password: {}", email, password);
+        log.info("Greetings ! You are logging in with email: {} and password: {}", email, password);
         service.doService();
     }
 
     @RequestMapping(value = "/login/{email}/{password}", method = RequestMethod.POST)
-    public void userLoginWithPathVariable(@PathVariable("email") String email, @PathVariable("password") String pwd) {
-        log.info("Greetings ! user with email: {} and password: {}", email, pwd);
+    public void userLoginWithPathVariable(@PathVariable(value = "email") String email, @PathVariable("password") String pwd) {
+        log.info("Greetings ! You are logging in with email: {} and password: {}", email, pwd);
     }
 
-//    @RequestMapping(value = "/login", method = RequestMethod.POST)
-//    @ResponseBody
-//    public User userLoginWithJson(@RequestBody User user) {
-//        log.info("Greetings ! " + user.toString());
-//        return user;
-//    }
+    @RequestMapping(value = "/display", method = RequestMethod.POST)
+    public void test(@PathVariable(value = "email") String email, @PathVariable(value = "password") String pwd) {
+        log.info("Greetings ! You are logging in with email: {} and password: {}", email, pwd);
+    }
+
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
+    public void userRegisterWithRequestParam(@RequestParam(value = "email", required = false, defaultValue = "register@gamil.com") String email,
+                                             @RequestParam("password") String password) {
+        log.info("Greetings ! You are registering with email: {} and password: {}", email, password);
+    }
+
+    @RequestMapping(value = "/loginJSON", method = RequestMethod.POST)
+    @ResponseBody
+    public User userLoginWithJson(@RequestBody User user) {
+        log.info("Greetings ! " + user.toString());
+        return user;
+    }
+
+    @RequestMapping(value = "/loginRedirect", method = RequestMethod.POST)
+    public ModelAndView redirectAfterUserLogin(@RequestBody User user) {
+        log.info("Greetings ! " + user.toString());
+        ModelAndView mv = new ModelAndView();
+        mv.setView("test.jsp");
+        mv.addViewData("current_user",user);
+        return mv;
+    }
 }

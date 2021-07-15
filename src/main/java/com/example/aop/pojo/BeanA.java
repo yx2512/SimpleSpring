@@ -1,7 +1,5 @@
-package com.example.bean;
+package com.example.aop.pojo;
 
-import com.example.annotation.Greeting;
-import com.example.annotation.Time;
 import com.simplespring.core.annotation.Autowired;
 import com.simplespring.core.annotation.Component;
 

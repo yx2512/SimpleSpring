@@ -16,9 +16,9 @@ public class ViewResultRender implements ResultRender {
             this.modelAndView = (ModelAndView) obj;
         } else if (obj instanceof String) {
             this.modelAndView = new ModelAndView().setView((String) obj);
+        } else {
+            throw new RuntimeException("Illegal type for view rendering");
         }
-
-        throw new RuntimeException("Illegal type for view rendering");
     }
 
     @Override
@@ -33,6 +33,6 @@ public class ViewResultRender implements ResultRender {
             request.setAttribute(entry.getKey(),entry.getValue());
         }
 
-        request.getRequestDispatcher("/templates/"+path).forward(request,response);
+        request.getRequestDispatcher("/template/"+path).forward(request,response);
     }
 }

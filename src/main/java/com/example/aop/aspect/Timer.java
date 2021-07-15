@@ -1,7 +1,6 @@
-package com.example.aspect;
+package com.example.aop.aspect;
 
-import com.example.annotation.Greeting;
-import com.example.annotation.Time;
+import com.example.aop.annotation.Time;
 import com.simplespring.aop.annotation.*;
 
 import java.text.SimpleDateFormat;

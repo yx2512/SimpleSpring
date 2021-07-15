@@ -1,8 +1,7 @@
-package com.example.bean.subBean;
+package com.example.aop.pojo.subBean;
 
-import com.example.bean.BeanA;
-import com.example.bean.BeanB;
-import com.example.bean.BeanInterface;
+import com.example.aop.pojo.BeanB;
+import com.example.aop.pojo.BeanInterface;
 import com.simplespring.core.annotation.Autowired;
 import com.simplespring.core.annotation.Component;
 

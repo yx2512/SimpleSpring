@@ -45,4 +45,8 @@ public class ControllerMethod {
     public List<String> getMethodParams() {
         return methodParams;
     }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
 }
