@@ -8,7 +8,7 @@ import javax.servlet.ServletContext;
 
 public class JSPRequestProcessor implements RequestProcessor {
     private static final String JSP_SERVLET = "jsp";
-    private static final String JSP_RESOURCE_PREFIX = "/templates/";
+    private static final String JSP_RESOURCE_PREFIX = "/template/";
 
     private final RequestDispatcher requestDispatcher;
 

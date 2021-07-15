@@ -1,30 +1,29 @@
 package com.simplespring.mvc.type;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 
 public class ControllerMethod {
     private String path;
     private Class<?> controllerClass;
     private Method method;
+    private List<String> methodParams;
     private Map<String, ParameterWrapper> methodParamMap;
 
     public ControllerMethod() {
     }
 
-    public ControllerMethod(String path, Class<?> controllerClass, Method method, Map<String, ParameterWrapper> methodParameters) {
+    public ControllerMethod(String path, Class<?> controllerClass, Method method, List<String> methodParams ,Map<String, ParameterWrapper> methodParameters) {
         this.path = path;
         this.controllerClass = controllerClass;
         this.method = method;
         this.methodParamMap = methodParameters;
+        this.methodParams = methodParams;
     }
 
     public Class<?> getControllerClass() {
         return controllerClass;
-    }
-
-    public void setControllerClass(Class<?> controllerClass) {
-        this.controllerClass = controllerClass;
     }
 
     public Method getMethod() {
@@ -35,7 +34,7 @@ public class ControllerMethod {
         this.method = method;
     }
 
-    public Map<String, ParameterWrapper> getMethodParameters() {
+    public Map<String, ParameterWrapper> getMethodParamMap() {
         return methodParamMap;
     }
 
@@ -43,7 +42,7 @@ public class ControllerMethod {
         return path;
     }
 
-    public void setPath(String path) {
-        this.path = path;
+    public List<String> getMethodParams() {
+        return methodParams;
     }
 }

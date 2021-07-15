@@ -8,7 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Controller
 @RequestMapping(value = "/hello", method = RequestMethod.GET)
-public class RequestMappingTestController {
+public class RequestMappingTestController1 {
+    @RequestMapping("/say")
     public void sayHello() {
       log.info("Hello there");
     }

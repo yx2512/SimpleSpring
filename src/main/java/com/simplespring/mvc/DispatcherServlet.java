@@ -17,7 +17,7 @@ import java.util.List;
 
 @WebServlet("/*")
 public class DispatcherServlet extends HttpServlet {
-    private static final List<RequestProcessor> PROCESSOR = new ArrayList<>();
+    private final List<RequestProcessor> PROCESSOR = new ArrayList<>();
 
     @Override
     public void init() throws ServletException {

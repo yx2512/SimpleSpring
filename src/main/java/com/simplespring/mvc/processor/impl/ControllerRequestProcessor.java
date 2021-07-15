@@ -1,10 +1,12 @@
 package com.simplespring.mvc.processor.impl;
 
 import com.google.gson.Gson;
+import com.simplespring.core.annotation.Controller;
 import com.simplespring.core.context.BeanContainer;
 import com.simplespring.core.utils.ConversionUtil;
 import com.simplespring.mvc.RequestProcessorChain;
 import com.simplespring.mvc.annotation.*;
+import com.simplespring.mvc.exception.BadRequestException;
 import com.simplespring.mvc.processor.RequestProcessor;
 import com.simplespring.mvc.render.ResultRender;
 import com.simplespring.mvc.render.impl.JSONResultRender;
@@ -33,35 +35,42 @@ public class ControllerRequestProcessor implements RequestProcessor {
 
     public ControllerRequestProcessor() {
         this.beanContainer = BeanContainer.getInstance();
-        Set<Map.Entry<String, Object>> beansWithRequestMapping =
-                beanContainer.getBeansByAnnotation(RequestMapping.class);
-        initPathInfoControllerMethodMap(beansWithRequestMapping);
+        Set<Map.Entry<String, Object>> controllerBeans =
+                beanContainer.getBeansByAnnotation(Controller.class);
+        initPathInfoControllerMethodMap(controllerBeans);
     }
 
-    private void initPathInfoControllerMethodMap(Set<Map.Entry<String, Object>> beansWithRequestMapping) {
-        if(beansWithRequestMapping == null || beansWithRequestMapping.size() == 0) {
+    private void initPathInfoControllerMethodMap(Set<Map.Entry<String, Object>> controllerBeans) {
+        if(controllerBeans == null || controllerBeans.size() == 0) {
             return;
         }
-        for (Map.Entry<String, Object> entry : beansWithRequestMapping) {
+        for (Map.Entry<String, Object> entry : controllerBeans) {
             Class<?> clazz = entry.getValue().getClass();
-            RequestMapping classRequest = clazz.getDeclaredAnnotation(RequestMapping.class);
-            String basePath = classRequest.value();
-            if(!basePath.startsWith("/")) {
-                basePath += "/";
-            }
 
+            StringBuilder pathBuilder = new StringBuilder();
+            if(clazz.isAnnotationPresent(RequestMapping.class)) {
+                RequestMapping classRequest = clazz.getDeclaredAnnotation(RequestMapping.class);
+                String basePath = classRequest.value();
+                if(!basePath.startsWith("/")) {
+                    pathBuilder.append("/");
+                }
+                pathBuilder.append(basePath);
+            }
+            int basePathLen = pathBuilder.length();
             Method[] declaredMethods = clazz.getDeclaredMethods();
             for (Method method : declaredMethods) {
+                pathBuilder.setLength(basePathLen);
                 if(method.isAnnotationPresent(RequestMapping.class)) {
                     RequestMapping methodRequest = method.getDeclaredAnnotation(RequestMapping.class);
                     String secondaryPath = methodRequest.value();
                     if(!secondaryPath.startsWith("/")) {
-                        secondaryPath += "/";
+                        pathBuilder.append("/");
                     }
 
-                    String finalPath = basePath + secondaryPath;
+                    String finalPath = pathBuilder.append(secondaryPath).toString();
 
-                    Map<String, ParameterWrapper> methodParam = new HashMap<>();
+                    Map<String, ParameterWrapper> methodParamMap = new HashMap<>();
+                    List<String> methodParams = new ArrayList<>();
 
                     Parameter[] parameters = method.getParameters();
 
@@ -85,7 +94,8 @@ public class ControllerRequestProcessor implements RequestProcessor {
                                 throw new RuntimeException("Floating parameter: " + parameter.getName());
                             }
                         }
-                        methodParam.put(parameter.getName(),parameterWrapper);
+                        methodParams.add(parameterWrapper.getName());
+                        methodParamMap.put(parameterWrapper.getName(),parameterWrapper);
                     }
                     String httpMethod = String.valueOf(methodRequest.method());
 
@@ -95,7 +105,7 @@ public class ControllerRequestProcessor implements RequestProcessor {
                                 requestPathInfo.getHttpPath(), clazz.getName(), method.getName());
                     }
 
-                    ControllerMethod controllerMethod = new ControllerMethod(finalPath, clazz, method, methodParam);
+                    ControllerMethod controllerMethod = new ControllerMethod(finalPath, clazz, method, methodParams, methodParamMap);
                     this.pathInfoControllerMethodMap.put(requestPathInfo, controllerMethod);
                 }
             }
@@ -163,8 +173,9 @@ public class ControllerRequestProcessor implements RequestProcessor {
         }
 
         List<Object> methodParams = new ArrayList<>();
-        Map<String, ParameterWrapper> methodParamMap = controllerMethod.getMethodParameters();
-        for(String name : methodParamMap.keySet()) {
+        List<String> methodMethodParams = controllerMethod.getMethodParams();
+        Map<String, ParameterWrapper> methodParamMap = controllerMethod.getMethodParamMap();
+        for(String name : methodMethodParams) {
             ParameterWrapper parameterWrapper = methodParamMap.get(name);
             Class<? extends Annotation> argAnnotationClass = parameterWrapper.getAnnotationClass();
             Object afterConversion;
@@ -180,7 +191,7 @@ public class ControllerRequestProcessor implements RequestProcessor {
                 afterConversion = convertPrimitiveRequestParameter(value, parameterWrapper);
             } else if(argAnnotationClass.equals(PathVariable.class)) {
                 if(urlSegmentMap == null || urlSegmentMap.size() == 0) {
-                    throw new RuntimeException("Did not find corresponding url pattern in method: " + controllerMethod.getMethodParameters());
+                    throw new RuntimeException("Did not find corresponding url pattern in method: " + controllerMethod.getMethod());
                 }
                 afterConversion = convertPrimitiveRequestParameter(name, urlSegmentMap, parameterWrapper);
             } else if(argAnnotationClass.equals(RequestBody.class)) {
@@ -220,7 +231,7 @@ public class ControllerRequestProcessor implements RequestProcessor {
     private Object convertPrimitiveRequestParameter(String value, ParameterWrapper parameterWrapper) {
         Object afterConversion;
         if(value == null && parameterWrapper.getRequired()) {
-            throw new RuntimeException("Missing request argument: " + parameterWrapper.getName());
+            throw new BadRequestException("Missing request argument: " + parameterWrapper.getName());
         } else if (value == null) {
             if(parameterWrapper.getDefaultValue() == null) {
                 afterConversion = ConversionUtil.primitiveNull(parameterWrapper.getParameter().getType());
@@ -239,7 +250,13 @@ public class ControllerRequestProcessor implements RequestProcessor {
     }
 
     private Object convertJSONRequestParameter(String value, ParameterWrapper parameterWrapper) {
-        Gson gson = new Gson();
-        return gson.fromJson(value, parameterWrapper.getParameter().getType());
+        if(value == null && parameterWrapper.getRequired() || "{}".equals(value) && parameterWrapper.getRequired()) {
+            throw new BadRequestException("Missing request body: " + parameterWrapper.getParameter().getType());
+        } else if (value == null || "{}".equals(value)) {
+            return null;
+        } else {
+            Gson gson = new Gson();
+            return gson.fromJson(value, parameterWrapper.getParameter().getType());
+        }
     }
 }

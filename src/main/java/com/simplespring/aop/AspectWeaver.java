@@ -36,11 +36,7 @@ public class AspectWeaver {
 
         for(Map.Entry<String, Object> entry : aspectSet) {
             Class<?> clazz = entry.getValue().getClass();
-            if(verifyAspect(clazz)) {
-                categorizeAspect(clazz);
-            } else {
-                throw new RuntimeException();
-            }
+            categorizeAspect(clazz);
         }
 
         if(beforeMap.size() + afterReturningMap.size() + afterThrowingMap.size() == 0) {
@@ -125,6 +121,7 @@ public class AspectWeaver {
 
     private void categorizeAspect(Class<?> clazz) {
         Order orderTag = clazz.getAnnotation(Order.class);
+        int order = orderTag == null ? 0 : orderTag.value();
         Method[] declaredMethods = clazz.getDeclaredMethods();
         for(Method method : declaredMethods) {
             Map<Class<? extends Annotation>, List<AspectInfo>> auxMap = null;
@@ -145,13 +142,8 @@ public class AspectWeaver {
                 throw new RuntimeException("No point cut found for aspect " + clazz.getSimpleName());
             }
             List<AspectInfo> aspectInfoList = auxMap.getOrDefault(targetAnnotation, new ArrayList<>());
-            aspectInfoList.add(new AspectInfo(orderTag.value(),method, beanContainer.getBean(clazz.getSimpleName())));
+            aspectInfoList.add(new AspectInfo(order,method, beanContainer.getBean(clazz.getSimpleName())));
             auxMap.put(targetAnnotation,aspectInfoList);
         }
-    }
-
-    private boolean verifyAspect(Class<?> clazz) {
-        return clazz.isAnnotationPresent(Aspect.class) &&
-                clazz.isAnnotationPresent(Order.class);
     }
 }

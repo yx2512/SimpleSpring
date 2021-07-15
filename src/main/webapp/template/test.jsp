@@ -11,6 +11,6 @@
     <title>Success!</title>
 </head>
 <body>
-This is a testing JSP page!
+This is a JSP page for testing purpose!
 </body>
 </html>

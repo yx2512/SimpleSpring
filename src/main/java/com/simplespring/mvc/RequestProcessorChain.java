@@ -1,5 +1,6 @@
 package com.simplespring.mvc;
 
+import com.simplespring.mvc.exception.BadRequestException;
 import com.simplespring.mvc.render.ResultRender;
 import com.simplespring.mvc.processor.RequestProcessor;
 import com.simplespring.mvc.render.impl.DefaultResultRender;
@@ -36,8 +37,8 @@ public class RequestProcessorChain {
                 }
             }
         } catch (Exception e) {
-            log.error("Error occurs when perform " + this.requestMethod);
-            this.resultRender = new InternalErrorResultRender(e.getMessage());
+            log.error("Error occurs when perform {} on {}", this.requestMethod, this.requestPath);
+            this.resultRender = new InternalErrorResultRender(e);
         }
     }
 
@@ -73,7 +74,7 @@ public class RequestProcessorChain {
         try {
             this.resultRender.render(this);
         } catch (Exception e) {
-            log.error("Rendering failed when perform " + this.requestMethod);
+            log.error("Rendering failed when perform {} with error message {}", this.requestMethod, e.getMessage());
             throw new RuntimeException(e);
         }
     }

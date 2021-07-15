@@ -1,22 +1,22 @@
 package com.simplespring.core.utils;
 
+import com.simplespring.mvc.exception.TypeConversionException;
+
 public class ConversionUtil {
     public static Object primitiveNull(Class<?> type) {
-        if(type == int.class || type == double.class ||
-                type == short.class || type == long.class ||
-                type == byte.class || type == float.class) {
+        if(type.equals(int.class) || type.equals(double.class) || type.equals(long.class) || type.equals(Integer.class) || type.equals(Double.class) || type.equals(Long.class)) {
             return 0;
-        } else if (type == boolean.class) {
+        } else if (type.equals(boolean.class) || type.equals(Boolean.class)) {
             return false;
-        } else if (type == String.class) {
+        } else if (type.equals(String.class)) {
             return "";
         }
         return null;
     }
 
     public static Object convert(Class<?> type, String value) {
-        if(!type.isPrimitive()) {
-            throw new RuntimeException("Does not support non-primitive type yet");
+        if(!type.isPrimitive() && !type.equals(String.class)) {
+            throw new TypeConversionException("Does not support non-primitive type yet");
         } else {
             if(value == null) {
                 return primitiveNull(type);
@@ -30,7 +30,7 @@ public class ConversionUtil {
                 } else if (Boolean.class.equals(type) || boolean.class.equals(type)) {
                     return Boolean.getBoolean(value);
                 }
-                throw new RuntimeException("Does not support non-primitive yet");
+                throw new TypeConversionException("Does not support non-primitive yet");
             }
         }
     }
