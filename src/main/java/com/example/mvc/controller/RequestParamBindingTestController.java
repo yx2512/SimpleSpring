@@ -1,13 +1,12 @@
 package com.example.mvc.controller;
 
-import com.example.mvc.aspect.annotation.Time;
 import com.example.mvc.pojo.User;
 import com.example.mvc.service.GenericService;
-import com.simplespring.core.annotation.Autowired;
-import com.simplespring.core.annotation.Controller;
-import com.simplespring.mvc.annotation.*;
-import com.simplespring.mvc.type.ModelAndView;
-import com.simplespring.mvc.type.RequestMethod;
+import com.aim.core.annotation.Autowired;
+import com.aim.core.annotation.Controller;
+import com.aim.mvc.annotation.*;
+import com.aim.mvc.type.ModelAndView;
+import com.aim.mvc.type.RequestMethod;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -31,11 +30,6 @@ public class RequestParamBindingTestController {
 
     @RequestMapping(value = "/login/{email}/{password}", method = RequestMethod.POST)
     public void userLoginWithPathVariable(@PathVariable(value = "email") String email, @PathVariable("password") String pwd) {
-        log.info("Greetings ! You are logging in with email: {} and password: {}", email, pwd);
-    }
-
-    @RequestMapping(value = "/display", method = RequestMethod.POST)
-    public void test(@PathVariable(value = "email") String email, @PathVariable(value = "password") String pwd) {
         log.info("Greetings ! You are logging in with email: {} and password: {}", email, pwd);
     }
 

@@ -1,14 +1,14 @@
 package com.example.aop.pojo.subBean;
 
-import com.example.aop.pojo.BeanB;
-import com.example.aop.pojo.BeanInterface;
-import com.simplespring.core.annotation.Autowired;
-import com.simplespring.core.annotation.Component;
+import com.example.aop.pojo.impl.BeanB;
+import com.example.aop.pojo.FirstBeanInterface;
+import com.aim.ioc.annotation.Autowired;
+import com.aim.core.annotation.Component;
 
 @Component
-public class BeanC implements BeanInterface{
+public class FirstBeanC implements FirstBeanInterface {
     BeanB beanB;
-    BeanInterface beanInterface;
+    FirstBeanInterface firstBeanInterface;
 
     @Autowired
     public void setBeanB(BeanB bean) {
@@ -16,8 +16,8 @@ public class BeanC implements BeanInterface{
     }
 
     @Autowired("BeanA")
-    public void setBeanInterface(BeanInterface beanInterface) {
-        this.beanInterface = beanInterface;
+    public void setBeanInterface(FirstBeanInterface firstBeanInterface) {
+        this.firstBeanInterface = firstBeanInterface;
     }
 
     public void getRandom() {
@@ -25,6 +25,6 @@ public class BeanC implements BeanInterface{
     }
 
     public String receiveRequest() {
-        return beanInterface.receiveRequest();
+        return firstBeanInterface.receiveRequest();
     }
 }

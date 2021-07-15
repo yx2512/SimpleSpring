@@ -1,10 +1,10 @@
 package com.example.aop.aspect;
 
 import com.example.aop.annotation.Greeting;
-import com.simplespring.aop.annotation.AfterReturning;
-import com.simplespring.aop.annotation.Aspect;
-import com.simplespring.aop.annotation.Before;
-import com.simplespring.aop.annotation.Order;
+import com.aim.aop.annotation.AfterReturning;
+import com.aim.aop.annotation.Aspect;
+import com.aim.aop.annotation.Before;
+import com.aim.aop.annotation.Order;
 
 @Aspect
 @Order(1)

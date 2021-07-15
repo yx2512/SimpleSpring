@@ -1,8 +1,8 @@
 package com.example.mvc.aspect;
 
 import com.example.mvc.aspect.annotation.Time;
-import com.simplespring.aop.annotation.Aspect;
-import com.simplespring.aop.annotation.Before;
+import com.aim.aop.annotation.Aspect;
+import com.aim.aop.annotation.Before;
 
 @Aspect
 public class TimeAspect {

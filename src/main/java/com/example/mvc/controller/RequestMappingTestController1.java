@@ -1,14 +1,16 @@
 package com.example.mvc.controller;
 
-import com.simplespring.core.annotation.Controller;
-import com.simplespring.mvc.annotation.RequestMapping;
-import com.simplespring.mvc.type.RequestMethod;
+import com.aim.core.annotation.Controller;
+import com.aim.mvc.annotation.RequestMapping;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
-@RequestMapping(value = "/hello", method = RequestMethod.GET)
 public class RequestMappingTestController1 {
+    @RequestMapping("/")
+    public String home() {
+        return "index.jsp";
+    }
     @RequestMapping("/say")
     public void sayHello() {
       log.info("Hello there");

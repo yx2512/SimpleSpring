@@ -1,7 +1,7 @@
 package com.example.mvc.service;
 
 import com.example.mvc.aspect.annotation.Time;
-import com.simplespring.core.annotation.Service;
+import com.aim.core.annotation.Service;
 
 @Service
 public class ServiceImpl implements GenericService{
