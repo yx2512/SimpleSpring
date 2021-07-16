@@ -1,4 +1,4 @@
-package com.aim.aop;
+package com.aim.aop.proxy;
 
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;

@@ -1,4 +1,4 @@
-package com.aim.aop;
+package com.aim.aop.proxy;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

@@ -1,4 +1,4 @@
-package com.aim.aop;
+package com.aim.aop.proxy;
 
 import com.aim.aop.aspect.AspectInfo;
 

@@ -1,4 +1,4 @@
-package com.aim.core.annotation;
+package com.aim.ioc.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

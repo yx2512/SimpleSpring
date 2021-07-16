@@ -2,6 +2,10 @@ package com.aim.aop;
 
 import com.aim.aop.annotation.*;
 import com.aim.aop.aspect.AspectInfo;
+import com.aim.aop.exception.AspectWeavingException;
+import com.aim.aop.proxy.CGlibDynamicProxy;
+import com.aim.aop.proxy.DefaultDynamicProxy;
+import com.aim.aop.proxy.JDKDynamicProxy;
 import com.aim.core.context.BeanContainer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -139,7 +143,7 @@ public class AspectWeaver {
             }
 
             if(targetAnnotation == null) {
-                throw new RuntimeException("No point cut found for aspect " + clazz.getSimpleName());
+                throw new AspectWeavingException("No point cut found for aspect " + clazz.getSimpleName());
             }
             List<AspectInfo> aspectInfoList = auxMap.getOrDefault(targetAnnotation, new ArrayList<>());
             aspectInfoList.add(new AspectInfo(order,method, beanContainer.getBean(clazz.getSimpleName())));

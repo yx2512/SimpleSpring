@@ -1,5 +1,6 @@
 package com.aim.aop;
 
+import com.aim.aop.proxy.DefaultDynamicProxy;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 

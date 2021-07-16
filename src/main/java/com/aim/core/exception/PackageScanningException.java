@@ -1,4 +1,4 @@
-package com.aim.exception;
+package com.aim.core.exception;
 
 public class PackageScanningException extends RuntimeException{
     static final long serialVersionUID = -3235532434345766939L;

@@ -6,7 +6,7 @@ import com.aim.ioc.annotation.Autowired;
 import com.aim.core.annotation.Component;
 
 @Component
-public class FirstBeanC implements FirstBeanInterface {
+public class BeanC implements FirstBeanInterface {
     BeanB beanB;
     FirstBeanInterface firstBeanInterface;
 

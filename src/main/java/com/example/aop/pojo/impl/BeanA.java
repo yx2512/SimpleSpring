@@ -4,7 +4,7 @@ import com.example.aop.annotation.Greeting;
 import com.example.aop.annotation.Time;
 import com.example.aop.pojo.FirstBeanInterface;
 import com.example.aop.pojo.SecondBeanInterface;
-import com.aim.core.annotation.Autowired;
+import com.aim.ioc.annotation.Autowired;
 import com.aim.core.annotation.Component;
 
 @Component

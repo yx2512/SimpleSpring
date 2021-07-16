@@ -3,16 +3,14 @@ package com.aim.core.context;
 import com.aim.aop.AspectWeaver;
 import com.aim.core.annotation.*;
 import com.aim.core.utils.ClassUtil;
-import com.aim.core.utils.ValidationUtil;
-import com.aim.exception.DependencyInjectionException;
-import com.aim.exception.PackageScanningException;
-import com.aim.exception.BeanRegistrationException;
+import com.aim.ioc.DependencyInjector;
+import com.aim.core.exception.PackageScanningException;
+import com.aim.core.exception.BeanRegistrationException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,7 +40,7 @@ public class BeanContainer {
     public synchronized void init(String packageName) {
         loadBeans(packageName);
         new AspectWeaver().doAop();
-        doIoC();
+        new DependencyInjector().doIoC();
     }
 
     public synchronized void loadBeans(String packageName){
@@ -58,7 +56,7 @@ public class BeanContainer {
             throw new PackageScanningException(e.getMessage());
         }
 
-        if(ValidationUtil.NotNullOrEmpty(classSet)) {
+        if(classSet!=null && !classSet.isEmpty()) {
             for(Class<?> clazz : classSet) {
                 addBean(clazz);
             }
@@ -79,74 +77,6 @@ public class BeanContainer {
         beanMap.put(key,value);
     }
 
-    private void doIoC() {
-        if(this.size() == 0) {
-            log.warn("Empty container");
-            return;
-        }
-
-        Set<String> nameSet = beanMap.keySet();
-        for(String beanName : nameSet) {
-            Class<?> clazz = beanMap.get(beanName).getClass();
-            Method[] declaredMethods = clazz.getDeclaredMethods();
-            for(Method method : declaredMethods) {
-                if(method.isAnnotationPresent(Autowired.class)) {
-                    if(method.getParameterCount() != 1) {
-                        throw new DependencyInjectionException("Wrong number of arguments");
-                    } else {
-                        Autowired autowiredAnnotation = method.getAnnotation(Autowired.class);
-                        String alias = autowiredAnnotation.value();
-                        Class<?> parameterType = method.getParameterTypes()[0];
-                        Object parameterInstance = getParameterInstance(parameterType.getSimpleName(), parameterType, alias);
-
-                        Object bean = beanMap.get(beanName);
-                        method.setAccessible(true);
-
-                        if(parameterInstance.getClass().getSimpleName().equals(beanName)) {
-                            throw new DependencyInjectionException("Circular dependency found in bean with class: " + clazz);
-                        }
-                        try {
-                            method.invoke(bean,parameterInstance);
-                        } catch (IllegalAccessException | InvocationTargetException e) {
-                            throw new DependencyInjectionException(e.getMessage());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private Object getParameterInstance(String name, Class<?> clazz, String alias) {
-        Object bean = beanMap.get(name);
-        if(bean != null) {
-            return bean;
-        } else {
-            String candidateBean = getCandidateClass(clazz, alias);
-            return beanMap.get(candidateBean);
-        }
-    }
-
-    private String getCandidateClass(Class<?> clazz, String alias) {
-        Set<String> superSet = getClassBySuperClass(clazz);
-        if(!ValidationUtil.NotNullOrEmpty(superSet)) {
-            throw new DependencyInjectionException("No bean of type " + clazz.toString());
-        }
-
-        if(alias.isEmpty()) {
-            if(superSet.size() == 1) return superSet.iterator().next();
-            else {
-                throw new DependencyInjectionException("Too many options for bean of type " + clazz.toString());
-            }
-        } else {
-            for(String candi : superSet) {
-                if(candi.equals(alias)) {
-                    return candi;
-                }
-            }
-            throw new DependencyInjectionException("Cannot find bean with alias " + alias);
-        }
-    }
-
     public  Set<Map.Entry<String, Object>> getBeansByAnnotation(Class<? extends Annotation> annotation) {
         Set<Map.Entry<String, Object>> entrySet = beanMap.entrySet();
         if(entrySet.isEmpty()) {
@@ -164,7 +94,7 @@ public class BeanContainer {
         return resSet.isEmpty() ? null : resSet;
     }
 
-    private Set<String> getClassBySuperClass(Class<?> clazz) {
+    public Set<String> getClassBySuperClass(Class<?> clazz) {
         Set<String> superSet = new HashSet<>();
         for(Map.Entry<String, Object> entry : beanMap.entrySet()) {
             Class<?> beanClazz = entry.getValue().getClass();

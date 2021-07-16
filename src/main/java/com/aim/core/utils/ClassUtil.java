@@ -5,7 +5,7 @@ import com.aim.core.annotation.Component;
 import com.aim.core.annotation.Controller;
 import com.aim.core.annotation.Repository;
 import com.aim.core.annotation.Service;
-import com.aim.exception.PackageScanningException;
+import com.aim.core.exception.PackageScanningException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;

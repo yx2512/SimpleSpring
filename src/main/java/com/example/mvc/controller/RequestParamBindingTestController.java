@@ -2,7 +2,7 @@ package com.example.mvc.controller;
 
 import com.example.mvc.pojo.User;
 import com.example.mvc.service.GenericService;
-import com.aim.core.annotation.Autowired;
+import com.aim.ioc.annotation.Autowired;
 import com.aim.core.annotation.Controller;
 import com.aim.mvc.annotation.*;
 import com.aim.mvc.type.ModelAndView;

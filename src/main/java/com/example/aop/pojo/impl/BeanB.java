@@ -1,7 +1,7 @@
 package com.example.aop.pojo.impl;
 
-import com.example.aop.pojo.subBean.FirstBeanC;
-import com.aim.core.annotation.Autowired;
+import com.example.aop.pojo.subBean.BeanC;
+import com.aim.ioc.annotation.Autowired;
 import com.aim.core.annotation.Component;
 
 import java.util.Random;
@@ -9,10 +9,10 @@ import java.util.Random;
 @Component
 public class BeanB extends BeanA {
 
-    FirstBeanC beanC;
+    BeanC beanC;
 
     @Autowired("BeanC")
-    public void setBeanC(FirstBeanC bean) {
+    public void setBeanC(BeanC bean) {
         this.beanC = bean;
     }
 //    @Time
