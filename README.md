@@ -1,4 +1,4 @@
-# AIM-framework
+# AIM Framework
 
 AIM, an abbreviation of **A**OP + **I**OC + **M**VC, is a light-weighted framework which provides AOP and IOC support for your Java project.
 AIM also encapsulates an MVC framework which is built around a DispatcherServlet. The mvc framework inside AIM is completely integrated with 
@@ -190,18 +190,18 @@ public class Controller3 {
 }
 ```
 
-Result rendering is determined by following:
+Result rendering is determined by:
 
 **occurrence of exception**\
 When exception occurs, either InternalErrorResultRender or ResourceNotFoundResultRender will be used to render the result.
 Processor chain will determine which one to use based on the type of exception.
 
-**return value of the method being called in controller**\
+**return value of the method being called in the controller**\
 DefaultResultRender will be used if the return type is void. When the return type is ModelAndView or String, ViewResultRender
 will be used to render the result
 
-**annotation above the method being called in controller**\
-If the method being called is annotated with ```@ResponseBody```, it means that the front end expects the result to be in JSON format.
+**annotation above the method being called in the controller**\
+If the method is annotated with ```@ResponseBody```, it means that the front end expects the result to be in JSON format.
 JSONResultRender will convert the return value to JSON string and write it to the response.
 
 All functionalities of IOC and AOP mentioned above are available.
